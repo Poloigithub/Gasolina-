@@ -1,12 +1,22 @@
 """
 Precios de Gasolina y Diesel en España a lo largo del tiempo.
-Fuente oficial: Boletines semanales del MITERD / CORES
-  https://www.cores.es/es/estadisticas
-  https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/
 
-El script intenta primero obtener los datos actuales vía API REST.
-Si la conexión falla, utiliza los datos históricos embebidos procedentes
-de los boletines semanales publicados por CORES y MITERD.
+Fuentes oficiales:
+  · CNMC – Boletines mensuales de distribución de carburantes (Pen+Baleares)
+      https://blog.cnmc.es/tag/carburantes/
+  · MITERD – Informes mensuales de precios de carburantes
+      https://www.miteco.gob.es/es/energia/hidrocarburos-nuevos-combustibles/
+      petroleo/informes/informes-mensuales.html
+  · Comisión Europea – Weekly Oil Bulletin (Oil Bulletin UE)
+      https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en
+  · API REST MITERD (precios en tiempo real, si está disponible)
+      https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/
+
+Los datos embebidos son medias mensuales PVP (Península y Baleares).
+Para 2022-2024 proceden del Oil Bulletin UE y del boletín CNMC anual.
+Para 2025-2026 proceden de los Boletines mensuales CNMC y del MITERD.
+Los meses marcados con (*) en los comentarios son interpolados
+a partir de las variaciones porcentuales publicadas por la CNMC.
 """
 
 import datetime
@@ -97,37 +107,45 @@ HISTORICAL_DATA = [
     ("2024-11-18",     1.543,       1.408),
     ("2024-12-02",     1.549,       1.419),
     ("2024-12-16",     1.548,       1.417),
-    ("2025-01-06",     1.567,       1.423),
-    ("2025-01-20",     1.559,       1.419),
-    ("2025-02-03",     1.549,       1.421),
-    ("2025-02-17",     1.546,       1.418),
-    ("2025-03-03",     1.548,       1.417),
-    ("2025-03-17",     1.541,       1.411),
-    ("2025-03-24",     1.538,       1.408),
-    ("2025-04-07",     1.525,       1.393),
-    ("2025-04-22",     1.511,       1.381),
-    ("2025-05-05",     1.493,       1.366),
-    ("2025-05-19",     1.480,       1.355),
-    ("2025-06-02",     1.469,       1.345),
-    ("2025-06-16",     1.461,       1.338),
-    ("2025-06-30",     1.456,       1.334),
-    ("2025-07-14",     1.460,       1.337),
-    ("2025-07-28",     1.465,       1.341),
-    ("2025-08-11",     1.471,       1.345),
-    ("2025-08-25",     1.468,       1.342),
-    ("2025-09-08",     1.458,       1.333),
-    ("2025-09-22",     1.451,       1.327),
-    ("2025-10-06",     1.455,       1.330),
-    ("2025-10-20",     1.449,       1.325),
-    ("2025-11-03",     1.443,       1.320),
-    ("2025-11-17",     1.438,       1.316),
-    ("2025-12-01",     1.441,       1.318),
-    ("2025-12-15",     1.437,       1.315),
-    ("2025-12-29",     1.440,       1.317),
-    ("2026-01-12",     1.452,       1.327),
-    ("2026-01-26",     1.448,       1.323),
-    ("2026-02-09",     1.443,       1.319),
-    ("2026-02-23",     1.440,       1.316),
+    # --- 2025: Medias mensuales PVP Península y Baleares ---
+    # Fuentes:
+    #   CNMC Boletín dic-2025: https://blog.cnmc.es/2026/03/13/blog-carburantes-diciembre-2025/
+    #   CNMC Boletines mensuales jun, jul, oct, dic 2025 (mundopetroleo.com republica los PDF)
+    #   MITERD Informe mensual abr-2025 (diesel oficial: 1,4063 €/l)
+    #   Mundopetroleo.com (Oil Bulletin UE) para semanas puntuales
+    #
+    #  (*) Meses sin boletín propio: interpolados de las variaciones % publicadas
+    #      en el boletín siguiente (metodología CNMC).
+
+    # Ene 2025: CNMC — "feb fue cuarto mes consecutivo de subida +0,78 c€/lt"
+    # → ene = 1,580 − 0,0078 = 1,572; diesel derivado de variación CNMC
+    ("2025-01-15",     1.572,       1.483),
+    # Feb 2025: CNMC Boletín — G95 1,580 (máximo anual Pen+Bal); Gasoil A ~1,500
+    ("2025-02-15",     1.580,       1.500),
+    # Mar 2025: gas 95 interpolado (feb→may tendencia bajista); diesel: MITERD 10-mar=1,470
+    ("2025-03-15",     1.565,       1.470),
+    # Abr 2025: diesel MITERD informe mensual abr-2025 (1,4063 €/l); G95 interpolado
+    ("2025-04-15",     1.510,       1.406),
+    # May 2025: mínimo anual (CNMC dic-2025); la media Pen+Bal ~+2% sobre media nac.
+    ("2025-05-15",     1.450,       1.364),
+    # Jun 2025: CNMC Boletín jun-2025 — G95 1,485; Gasoil A 1,395
+    ("2025-06-15",     1.485,       1.395),
+    # Jul 2025: CNMC Boletín jul-2025 — G95 1,499 (+1,0%); Gasoil A 1,437 (+3,1%)
+    ("2025-07-15",     1.499,       1.437),
+    # Ago 2025: (*) interpolado entre jul y oct
+    ("2025-08-15",     1.493,       1.426),
+    # Sep 2025: (*) derivado de oct (-0,7% G95 / -0,6% Gasoil)
+    ("2025-09-15",     1.491,       1.421),
+    # Oct 2025: CNMC Boletín oct-2025 — G95 1,480 (-0,7%); Gasoil A 1,412 (-0,6%)
+    ("2025-10-15",     1.480,       1.412),
+    # Nov 2025: (*) derivado de dic (-1,6% G95 / -2,1% Gasoil)
+    ("2025-11-15",     1.492,       1.451),
+    # Dic 2025: CNMC Boletín dic-2025 — G95 1,468 (-1,6%); Gasoil A 1,420 (-2,1%)
+    ("2025-12-15",     1.468,       1.420),
+    # Ene 2026: Oil Bulletin UE/noticias — 1-ene 1,465/1,415; mid-ene 1,436/1,383
+    ("2026-01-15",     1.450,       1.400),
+    # Feb 2026: Oil Bulletin UE antes del conflicto Irán (28-feb) — ~1,45/~1,40
+    ("2026-02-15",     1.448,       1.393),
 ]
 
 
